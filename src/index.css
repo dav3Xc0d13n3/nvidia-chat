@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+body { @apply bg-gray-50 text-gray-900 antialiased; }
+#root { @apply min-h-screen; }
+
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: theme('colors.gray.300') transparent; }
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background-color: theme('colors.gray.300'); border-radius: 3px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background-color: theme('colors.gray.400'); }
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-primary { @apply btn bg-nvidia-green text-white hover:bg-nvidia-green/90 focus:ring-nvidia-green; }
+  .btn-secondary { @apply btn bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-400; }
+  .btn-ghost { @apply btn text-gray-600 hover:bg-gray-100 focus:ring-gray-400; }
+  .input { @apply w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nvidia-green focus:border-transparent transition-shadow; }
+  .card { @apply bg-white rounded-xl border border-gray-200 shadow-sm; }
+}
