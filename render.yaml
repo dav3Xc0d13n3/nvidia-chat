@@ -25,7 +25,7 @@ services:
       - key: VITE_NVIDIA_BASE_URL
         value: https://integrate.api.nvidia.com/v1
       - key: VITE_NVIDIA_MODEL
-        value: meta/llama-3.1-405b-instruct
+        value: nvidia/nemotron-3-ultra
       - key: VITE_API_URL
         value: /api
     healthCheckPath: /api/health
