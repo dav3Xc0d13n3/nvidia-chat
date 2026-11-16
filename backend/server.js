@@ -210,7 +210,7 @@ app.get('/api/health', (req, res) => {
 })
 
 // Proxy chat completions to NVIDIA API (avoids CORS)
-app.post('/api/chat/completions', authMiddleware, async (req, res) => {
+app.post('/api/chat/completions', async (req, res) => {
   try {
     const { model, messages, stream, max_tokens, temperature } = req.body
     const apiKey = req.headers['x-api-key'] || process.env.VITE_NVIDIA_API_KEY
@@ -267,7 +267,7 @@ app.post('/api/chat/completions', authMiddleware, async (req, res) => {
 })
 
 // Proxy models endpoint
-app.get('/api/models', authMiddleware, async (req, res) => {
+app.get('/api/models', async (req, res) => {
   try {
     const apiKey = req.headers['x-api-key'] || process.env.VITE_NVIDIA_API_KEY
     const baseUrl = process.env.VITE_NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'
