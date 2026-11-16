@@ -51,6 +51,19 @@ async function initDB() {
     })
     await pgPool.query('SELECT 1')
     console.log('Connected to PostgreSQL')
+    
+    // Create tables
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    `)
+    console.log('PostgreSQL tables initialized')
   } else {
     const dataDir = path.join(process.cwd(), 'data')
     if (!fs.existsSync(dataDir)) {
@@ -59,6 +72,19 @@ async function initDB() {
     const dbPath = path.join(dataDir, 'chat.db')
     db = new Database(dbPath)
     console.log('Connected to SQLite at', dbPath)
+    
+    // Create tables
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    `)
+    console.log('SQLite tables initialized')
   }
 }
 
