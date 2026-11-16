@@ -1,11 +1,10 @@
 services:
   - type: web
-    name: nvidia-chat-api
+    name: nvidia-chat
     runtime: node
     plan: free
-    rootDir: backend
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: npm install && npm run build && cd backend && npm install
+    startCommand: node backend/server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -21,15 +20,6 @@ services:
           property: connectionString
       - key: FRONTEND_URL
         value: https://nvidia-chat.onrender.com
-    healthCheckPath: /api/health
-
-  - type: web
-    name: nvidia-chat
-    runtime: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    pullRequestPreviewsEnabled: true
-    envVars:
       - key: VITE_NVIDIA_API_KEY
         sync: false
       - key: VITE_NVIDIA_BASE_URL
@@ -37,24 +27,8 @@ services:
       - key: VITE_NVIDIA_MODEL
         value: meta/llama-3.1-405b-instruct
       - key: VITE_API_URL
-        value: https://nvidia-chat-api-abl0.onrender.com/api
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: SAMEORIGIN
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+        value: /api
+    healthCheckPath: /api/health
 
 databases:
   - name: nvidia-chat-db

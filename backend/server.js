@@ -7,11 +7,13 @@ import Database from 'better-sqlite3'
 import pg from 'pg'
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
 dotenv.config()
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT || 10000
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -19,13 +21,12 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   process.env.FRONTEND_URL,
-  process.env.FRONTEND_URL?.replace('https://', 'https://*.'),
 ].filter(Boolean)
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true)
-    if (allowedOrigins.some(o => o && (o.includes('*') ? origin.match(o.replace('*', '.*')) : origin === o))) {
+    if (allowedOrigins.some(o => o && origin === o)) {
       return callback(null, true)
     }
     if (origin.includes('.onrender.com') || origin.includes('localhost')) {
@@ -182,6 +183,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+// Serve frontend static files in production
+if (isProduction) {
+  const distPath = path.join(__dirname, '..', 'dist')
+  app.use(express.static(distPath))
+  
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) return
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+}
+
 app.use((err, req, res, next) => {
   console.error('Server error:', err)
   res.status(500).json({ error: 'Internal server error' })
@@ -189,5 +201,5 @@ app.use((err, req, res, next) => {
 
 await initDB()
 app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`)
+  console.log(`Server running on http://localhost:${PORT}`)
 })
