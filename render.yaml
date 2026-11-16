@@ -37,7 +37,7 @@ services:
       - key: VITE_NVIDIA_MODEL
         value: meta/llama-3.1-405b-instruct
       - key: VITE_API_URL
-        value: https://nvidia-chat-api.onrender.com/api
+        value: https://nvidia-chat-api-abl0.onrender.com/api
     headers:
       - path: /*
         name: X-Frame-Options
