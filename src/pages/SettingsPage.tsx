@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { User, Key, Save, Trash2, Download, Upload, RefreshCw, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState } from 'react'
+import { User, Key, Save, Trash2, Download, Upload, RefreshCw, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useChatStore } from '../stores/chatStore'
 import { cn, formatDate } from '../lib/utils'
@@ -328,7 +328,7 @@ export function SettingsPage() {
 
               {availableModels.length > 0 && (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {availableModels.map((model) => (
+                  {availableModels.map((model: string) => (
                     <label key={model} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="radio"

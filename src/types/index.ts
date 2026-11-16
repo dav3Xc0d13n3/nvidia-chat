@@ -43,12 +43,20 @@ export interface ChatState {
   conversations: Conversation[]
   currentConversationId: string | null
   isLoading: boolean
+  userApiKey: string
+  availableModels: string[]
+  selectedModel: string
+  baseUrl: string
   createConversation: () => Conversation
   setCurrentConversation: (id: string) => void
   addMessage: (conversationId: string, message: Message) => void
   updateMessage: (conversationId: string, messageId: string, content: string) => void
   deleteConversation: (id: string) => void
   sendMessage: (content: string, files?: FileAttachment[]) => Promise<void>
+  setUserApiKey: (key: string) => void
+  setSelectedModel: (model: string) => void
+  setBaseUrl: (url: string) => void
+  fetchModels: () => Promise<void>
 }
 
 export interface NvidiaApiConfig {

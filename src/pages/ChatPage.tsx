@@ -174,7 +174,7 @@ function MessageList({ conversation }: { conversation: Conversation | null }) {
   )
 }
 
-function MessageInput({ conversation }: { conversation: Conversation | null }) {
+function MessageInput() {
   const { sendMessage, isLoading } = useChatStore()
   const [text, setText] = useState('')
   const [files, setFiles] = useState<FileAttachment[]>([])
@@ -287,7 +287,7 @@ export function ChatPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <ChatHeader conversation={conversation} />
         <MessageList conversation={conversation} />
-        <MessageInput conversation={conversation} />
+        <MessageInput />
       </div>
     </div>
   )
