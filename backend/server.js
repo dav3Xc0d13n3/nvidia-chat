@@ -236,7 +236,14 @@ app.post('/api/chat/completions', async (req, res) => {
     })
 
     if (!nvidiaRes.ok) {
-      const err = await nvidiaRes.json().catch(() => ({ error: nvidiaRes.statusText }))
+      const errText = await nvidiaRes.text()
+      console.error('NVIDIA API error:', nvidiaRes.status, errText)
+      let err
+      try {
+        err = JSON.parse(errText)
+      } catch {
+        err = { error: errText || nvidiaRes.statusText }
+      }
       return res.status(nvidiaRes.status).json(err)
     }
 
@@ -281,7 +288,14 @@ app.get('/api/models', async (req, res) => {
     })
 
     if (!nvidiaRes.ok) {
-      const err = await nvidiaRes.json().catch(() => ({ error: nvidiaRes.statusText }))
+      const errText = await nvidiaRes.text()
+      console.error('NVIDIA Models API error:', nvidiaRes.status, errText)
+      let err
+      try {
+        err = JSON.parse(errText)
+      } catch {
+        err = { error: errText || nvidiaRes.statusText }
+      }
       return res.status(nvidiaRes.status).json(err)
     }
 

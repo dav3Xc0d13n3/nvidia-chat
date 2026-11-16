@@ -153,8 +153,15 @@ export const useChatStore = create<ChatState>()(
           })
 
           if (!res.ok) {
-            const err = await res.json()
-            throw new Error(err.error?.message || 'Failed to get response')
+            const errText = await res.text()
+            let err
+            try {
+              err = JSON.parse(errText)
+            } catch {
+              err = { error: errText }
+            }
+            const msg = err.error?.message || err.error || errText || 'Failed to get response'
+            throw new Error(msg)
           }
 
           const reader = res.body?.getReader()
