@@ -5,7 +5,8 @@ import { ChatState, Conversation, Message, FileAttachment } from '../types'
 import { useAuthStore } from './authStore'
 
 const DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1'
-const DEFAULT_MODEL = 'meta/llama-3.1-405b-instruct'
+const DEFAULT_MODEL = 'nvidia/nemotron-3-ultra'
+const DEFAULT_API_KEY = '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'
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -13,7 +14,7 @@ export const useChatStore = create<ChatState>()(
       conversations: [],
       currentConversationId: null,
       isLoading: false,
-      userApiKey: '',
+      userApiKey: DEFAULT_API_KEY,
       availableModels: [],
       selectedModel: DEFAULT_MODEL,
       baseUrl: DEFAULT_BASE_URL,
