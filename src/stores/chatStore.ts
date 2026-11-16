@@ -4,9 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { ChatState, Conversation, Message, FileAttachment } from '../types'
 import { useAuthStore } from './authStore'
 
-const NVIDIA_API_KEY = import.meta.env.VITE_NVIDIA_API_KEY
-const NVIDIA_BASE_URL = import.meta.env.VITE_NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'
-const NVIDIA_MODEL = import.meta.env.VITE_NVIDIA_MODEL || 'meta/llama-3.1-405b-instruct'
+const DEFAULT_BASE_URL = 'https://integrate.api.nvidia.com/v1'
+const DEFAULT_MODEL = 'meta/llama-3.1-405b-instruct'
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -14,6 +13,10 @@ export const useChatStore = create<ChatState>()(
       conversations: [],
       currentConversationId: null,
       isLoading: false,
+      userApiKey: '',
+      availableModels: [],
+      selectedModel: DEFAULT_MODEL,
+      baseUrl: DEFAULT_BASE_URL,
 
       createConversation: () => {
         const conversation: Conversation = {
@@ -62,9 +65,39 @@ export const useChatStore = create<ChatState>()(
           currentConversationId: state.currentConversationId === id ? null : state.currentConversationId,
         })),
 
+      setUserApiKey: (key: string) => set({ userApiKey: key }),
+
+      setSelectedModel: (model: string) => set({ selectedModel: model }),
+
+      setBaseUrl: (url: string) => set({ baseUrl: url }),
+
+      fetchModels: async () => {
+        const { userApiKey, baseUrl } = get()
+        const apiKey = userApiKey || import.meta.env.VITE_NVIDIA_API_KEY
+        if (!apiKey) return
+
+        try {
+          const res = await fetch(`${baseUrl}/models`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+          })
+          if (res.ok) {
+            const data = await res.json()
+            const models = data.data?.map((m: any) => m.id).filter(Boolean) || []
+            set({ availableModels: models })
+          }
+        } catch (error) {
+          console.error('Failed to fetch models:', error)
+        }
+      },
+
       sendMessage: async (content: string, files?: FileAttachment[]) => {
-        const { currentConversationId, conversations } = get()
-        if (!currentConversationId) return
+        let { currentConversationId, conversations } = get()
+        
+        if (!currentConversationId) {
+          const newConv = get().createConversation()
+          currentConversationId = newConv.id
+          conversations = get().conversations
+        }
 
         const conversation = conversations.find((c) => c.id === currentConversationId)
         if (!conversation) return
@@ -89,20 +122,22 @@ export const useChatStore = create<ChatState>()(
         set({ isLoading: true })
 
         try {
+          const { userApiKey, baseUrl, selectedModel } = get()
+          const apiKey = userApiKey || import.meta.env.VITE_NVIDIA_API_KEY
           const { token } = useAuthStore.getState()
           
           const messages = conversation.messages
             .concat(userMessage)
             .map((m) => ({ role: m.role, content: m.content }))
 
-          const res = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
+          const res = await fetch(`${baseUrl}/chat/completions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${NVIDIA_API_KEY || token}`,
+              'Authorization': `Bearer ${apiKey || token}`,
             },
             body: JSON.stringify({
-              model: NVIDIA_MODEL,
+              model: selectedModel,
               messages,
               stream: true,
               max_tokens: 4096,
@@ -161,7 +196,17 @@ export const useChatStore = create<ChatState>()(
         }
       },
     }),
-    { name: 'chat-storage', partialize: (state) => ({ conversations: state.conversations, currentConversationId: state.currentConversationId }) }
+    { 
+      name: 'chat-storage', 
+      partialize: (state) => ({ 
+        conversations: state.conversations, 
+        currentConversationId: state.currentConversationId,
+        userApiKey: state.userApiKey,
+        selectedModel: state.selectedModel,
+        baseUrl: state.baseUrl,
+        availableModels: state.availableModels,
+      }) 
+    }
   )
 )
 

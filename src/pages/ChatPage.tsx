@@ -183,7 +183,7 @@ function MessageInput({ conversation }: { conversation: Conversation | null }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if ((!text.trim() && files.length === 0) || isLoading || !conversation) return
+    if ((!text.trim() && files.length === 0) || isLoading) return
     sendMessage(text, files)
     setText('')
     setFiles([])
@@ -258,14 +258,14 @@ function MessageInput({ conversation }: { conversation: Conversation | null }) {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isLoading ? 'Waiting for response...' : 'Message NVIDIA...'}
-            disabled={isLoading || !conversation}
+            disabled={isLoading}
             rows={1}
             className="flex-1 min-h-[44px] max-h-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nvidia-green focus:border-transparent resize-none transition-shadow"
             style={{ height: '44px' }}
           />
           <button
             type="submit"
-            disabled={isLoading || (!text.trim() && files.length === 0) || !conversation}
+            disabled={isLoading || (!text.trim() && files.length === 0)}
             className="p-2.5 rounded-xl bg-nvidia-green text-white hover:bg-nvidia-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             aria-label="Send message"
           >

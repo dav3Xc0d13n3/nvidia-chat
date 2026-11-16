@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { User, Key, Save, Trash2, Download, Upload } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { User, Key, Save, Trash2, Download, Upload, RefreshCw, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useChatStore } from '../stores/chatStore'
 import { cn, formatDate } from '../lib/utils'
 
 export function SettingsPage() {
   const { user, logout } = useAuthStore()
-  const { conversations, deleteConversation } = useChatStore()
+  const { conversations, deleteConversation, userApiKey, availableModels, selectedModel, baseUrl, setUserApiKey, setSelectedModel, setBaseUrl, fetchModels } = useChatStore()
   const [activeTab, setActiveTab] = useState<'account' | 'data' | 'api'>('account')
   const [name, setName] = useState(user?.name || '')
   const [email, setEmail] = useState(user?.email || '')
@@ -15,6 +15,9 @@ export function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [showApiKey, setShowApiKey] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState(userApiKey)
+  const [fetchingModels, setFetchingModels] = useState(false)
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text })
@@ -24,7 +27,6 @@ export function SettingsPage() {
   const handleSaveProfile = async () => {
     setSaving(true)
     try {
-      // In a real app, this would call an API endpoint
       showMessage('success', 'Profile updated (demo mode - not persisted to server)')
     } catch {
       showMessage('error', 'Failed to update profile')
@@ -44,7 +46,6 @@ export function SettingsPage() {
     }
     setSaving(true)
     try {
-      // In a real app, this would call an API endpoint
       showMessage('success', 'Password changed (demo mode)')
       setCurrentPassword('')
       setNewPassword('')
@@ -80,7 +81,6 @@ export function SettingsPage() {
       try {
         const data = JSON.parse(event.target?.result as string)
         if (data.conversations) {
-          // In a real app, this would merge with store
           showMessage('success', `Imported ${data.conversations.length} conversations (demo mode)`)
         }
       } catch {
@@ -96,6 +96,19 @@ export function SettingsPage() {
       conversations.forEach((c) => deleteConversation(c.id))
       showMessage('success', 'All local data cleared')
     }
+  }
+
+  const handleSaveApiKey = () => {
+    setUserApiKey(apiKeyInput.trim())
+    setShowApiKey(false)
+    showMessage('success', 'API key saved')
+    setFetchingModels(true)
+    fetchModels().finally(() => setFetchingModels(false))
+  }
+
+  const handleFetchModels = () => {
+    setFetchingModels(true)
+    fetchModels().finally(() => setFetchingModels(false))
   }
 
   const tabs = [
@@ -258,27 +271,103 @@ export function SettingsPage() {
           <h2 className="text-lg font-semibold text-gray-900">API Configuration</h2>
           
           <div className="space-y-4">
-            <h3 className="font-medium text-gray-900">NVIDIA NGC API</h3>
-            <p className="text-sm text-gray-600">
-              The application uses NVIDIA's NGC API for model inference. Configure via environment variables:
+            <h3 className="font-medium text-gray-900">NVIDIA NGC API Key</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Enter your personal NVIDIA API key to access models. Get one from 
+              <a href="https://build.nvidia.com" target="_blank" rel="noopener" className="text-nvidia-green hover:underline">NVIDIA Build</a>.
+              If not provided, the app will use the server-configured key.
+            </p>
+            
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="Enter your NVIDIA API key (nvapi-...)"
+                  className="input pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              <button onClick={handleSaveApiKey} className="btn-primary whitespace-nowrap">
+                <Save className="w-4 h-4" />
+                Save
+              </button>
+            </div>
+
+            {userApiKey && (
+              <p className="text-xs text-green-600 flex items-center gap-1">
+                <CheckCircle className="w-4 h-4" />
+                Personal API key active (stored locally in browser)
+              </p>
+            )}
+
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="font-medium text-gray-900 mb-3">Available Models</h3>
+              <div className="flex gap-2 mb-4">
+                <button 
+                  onClick={handleFetchModels} 
+                  disabled={fetchingModels || !apiKeyInput.trim()}
+                  className="btn-secondary"
+                >
+                  <RefreshCw className={`w-4 h-4 ${fetchingModels ? 'animate-spin' : ''}`} />
+                  {fetchingModels ? 'Fetching...' : 'Fetch Models'}
+                </button>
+                <span className="text-sm text-gray-500 self-center">
+                  {availableModels.length > 0 
+                    ? `${availableModels.length} models found` 
+                    : 'No models fetched yet'}
+                </span>
+              </div>
+
+              {availableModels.length > 0 && (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {availableModels.map((model) => (
+                    <label key={model} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                      <input
+                        type="radio"
+                        name="model"
+                        value={model}
+                        checked={selectedModel === model}
+                        onChange={() => setSelectedModel(model)}
+                        className="w-4 h-4 text-nvidia-green border-gray-300 focus:ring-nvidia-green"
+                      />
+                      <span className="text-sm font-mono text-gray-900 truncate flex-1">{model}</span>
+                      {selectedModel === model && <CheckCircle className="w-5 h-5 text-nvidia-green" />}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="font-medium text-gray-900 mb-3">API Base URL</h3>
+              <input
+                type="url"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://integrate.api.nvidia.com/v1"
+                className="input max-w-md"
+              />
+              <p className="text-xs text-gray-500 mt-1">Default: https://integrate.api.nvidia.com/v1</p>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="font-medium text-gray-900 mb-3">Environment Variables (Server)</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              These are configured on the server (Render dashboard) and used as fallback:
             </p>
             <div className="bg-gray-100 rounded-lg p-4 space-y-3 font-mono text-sm">
               <div><span className="text-gray-500">VITE_NVIDIA_API_KEY=</span><code className="text-nvidia-green">{import.meta.env.VITE_NVIDIA_API_KEY ? '••••••••' : 'not set'}</code></div>
               <div><span className="text-gray-500">VITE_NVIDIA_BASE_URL=</span><code className="text-nvidia-green">{import.meta.env.VITE_NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'}</code></div>
               <div><span className="text-gray-500">VITE_NVIDIA_MODEL=</span><code className="text-nvidia-green">{import.meta.env.VITE_NVIDIA_MODEL || 'meta/llama-3.1-405b-instruct'}</code></div>
-            </div>
-            <p className="text-xs text-gray-500">
-              Get your API key from <a href="https://build.nvidia.com" target="_blank" rel="noopener" className="text-nvidia-green hover:underline">NVIDIA Build</a>
-            </p>
-          </div>
-
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="font-medium text-gray-900">Backend API</h3>
-            <p className="text-sm text-gray-600">
-              Authentication and data persistence (when backend is implemented):
-            </p>
-            <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
-              <div><span className="text-gray-500">VITE_API_URL=</span><code className="text-nvidia-green">{import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}</code></div>
             </div>
           </div>
         </div>
