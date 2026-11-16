@@ -73,18 +73,23 @@ export const useChatStore = create<ChatState>()(
       setBaseUrl: (url: string) => set({ baseUrl: url }),
 
       fetchModels: async () => {
-        const { userApiKey, baseUrl } = get()
+        const { userApiKey } = get()
         const apiKey = userApiKey || import.meta.env.VITE_NVIDIA_API_KEY
         if (!apiKey) return
 
         try {
-          const res = await fetch(`${baseUrl}/models`, {
-            headers: { 'Authorization': `Bearer ${apiKey}` },
+          const res = await fetch('/api/models', {
+            headers: { 
+              'Authorization': `Bearer ${apiKey}`,
+              'x-api-key': apiKey,
+            },
           })
           if (res.ok) {
             const data = await res.json()
             const models = data.data?.map((m: any) => m.id).filter(Boolean) || []
             set({ availableModels: models })
+          } else {
+            console.error('Failed to fetch models:', await res.text())
           }
         } catch (error) {
           console.error('Failed to fetch models:', error)
@@ -123,7 +128,7 @@ export const useChatStore = create<ChatState>()(
         set({ isLoading: true })
 
         try {
-          const { userApiKey, baseUrl, selectedModel } = get()
+          const { userApiKey, selectedModel } = get()
           const apiKey = userApiKey || import.meta.env.VITE_NVIDIA_API_KEY
           const { token } = useAuthStore.getState()
           
@@ -131,11 +136,12 @@ export const useChatStore = create<ChatState>()(
             .concat(userMessage)
             .map((m) => ({ role: m.role, content: m.content }))
 
-          const res = await fetch(`${baseUrl}/chat/completions`, {
+          const res = await fetch('/api/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey || token}`,
+              'Authorization': `Bearer ${token}`,
+              'x-api-key': apiKey,
             },
             body: JSON.stringify({
               model: selectedModel,

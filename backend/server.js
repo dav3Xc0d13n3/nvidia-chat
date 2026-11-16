@@ -209,6 +209,90 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+// Proxy chat completions to NVIDIA API (avoids CORS)
+app.post('/api/chat/completions', authMiddleware, async (req, res) => {
+  try {
+    const { model, messages, stream, max_tokens, temperature } = req.body
+    const apiKey = req.headers['x-api-key'] || process.env.VITE_NVIDIA_API_KEY
+    const baseUrl = process.env.VITE_NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'
+    
+    if (!apiKey) {
+      return res.status(400).json({ error: 'No API key configured' })
+    }
+
+    const nvidiaRes = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model || 'nvidia/nemotron-3-ultra',
+        messages,
+        stream: stream ?? true,
+        max_tokens: max_tokens ?? 4096,
+        temperature: temperature ?? 0.7,
+      }),
+    })
+
+    if (!nvidiaRes.ok) {
+      const err = await nvidiaRes.json().catch(() => ({ error: nvidiaRes.statusText }))
+      return res.status(nvidiaRes.status).json(err)
+    }
+
+    // Stream response back to client
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+    res.flushHeaders()
+
+    const reader = nvidiaRes.body?.getReader()
+    const decoder = new TextDecoder()
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value)
+        res.write(chunk)
+      }
+    }
+    res.end()
+  } catch (error) {
+    console.error('Chat proxy error:', error)
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Chat completion failed' })
+    }
+  }
+})
+
+// Proxy models endpoint
+app.get('/api/models', authMiddleware, async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'] || process.env.VITE_NVIDIA_API_KEY
+    const baseUrl = process.env.VITE_NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'
+    
+    if (!apiKey) {
+      return res.status(400).json({ error: 'No API key configured' })
+    }
+
+    const nvidiaRes = await fetch(`${baseUrl}/models`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    })
+
+    if (!nvidiaRes.ok) {
+      const err = await nvidiaRes.json().catch(() => ({ error: nvidiaRes.statusText }))
+      return res.status(nvidiaRes.status).json(err)
+    }
+
+    const data = await nvidiaRes.json()
+    res.json(data)
+  } catch (error) {
+    console.error('Models proxy error:', error)
+    res.status(500).json({ error: 'Failed to fetch models' })
+  }
+})
+
 // Serve frontend static files in production
 if (isProduction) {
   const distPath = path.join(__dirname, '..', 'dist')
