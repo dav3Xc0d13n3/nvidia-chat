@@ -3,7 +3,7 @@ services:
     name: nvidia-chat
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build && cd backend && npm install
+    buildCommand: npm install --include=dev && npm run build && cd backend && npm install --include=dev
     startCommand: node backend/server.js
     envVars:
       - key: NODE_ENV
